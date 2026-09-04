@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Інформаційний Дашборд</title>
+  <!-- Chart.js v4 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse для парсинга CSV -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
     :root {
@@ -27,15 +29,14 @@
     body {
       background-color: var(--bg-light);
       color: var(--text-main);
-      padding-bottom: 40px;
+      padding-bottom: 50px;
     }
 
-    /* Шапка сайта */
     header {
       background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
       color: #fff;
       padding: 20px 5%;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -44,18 +45,17 @@
     }
 
     header h1 {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: 700;
-      letter-spacing: 0.5px;
     }
 
     .refresh-btn {
       background: var(--accent);
       color: var(--primary-dark);
       border: none;
-      padding: 10px 18px;
+      padding: 10px 20px;
       border-radius: 6px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -65,17 +65,16 @@
       transform: translateY(-1px);
     }
 
-    /* Главный контейнер */
     .container {
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 25px auto;
       padding: 0 20px;
     }
 
-    /* Навигация (Табы) */
+    /* Навигационные табы */
     .nav-tabs {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 25px;
       overflow-x: auto;
       padding-bottom: 5px;
@@ -89,7 +88,7 @@
       border-radius: 8px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       transition: all 0.3s ease;
       white-space: nowrap;
     }
@@ -100,78 +99,97 @@
       border-color: var(--primary-dark);
     }
 
-    /* Карточки KPI */
+    /* Название листа/таблицы из первой строки */
+    .sheet-title-header {
+      background: var(--card-bg);
+      padding: 18px 24px;
+      border-radius: 10px;
+      margin-bottom: 25px;
+      border-left: 6px solid var(--accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .sheet-title-header h2 {
+      color: var(--primary-dark);
+      font-size: 1.3rem;
+    }
+
+    /* KPI Карточки */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
-      margin-bottom: 30px;
+      margin-bottom: 25px;
     }
 
     .kpi-card {
       background: var(--card-bg);
       padding: 20px;
       border-radius: 10px;
-      border-left: 5px solid var(--primary);
+      border-top: 4px solid var(--primary);
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    .kpi-card h3 {
-      font-size: 0.85rem;
+    .kpi-card h4 {
+      font-size: 0.8rem;
       color: var(--text-muted);
       text-transform: uppercase;
       margin-bottom: 8px;
     }
 
     .kpi-card .value {
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       font-weight: 700;
       color: var(--primary-dark);
+      word-break: break-word;
     }
 
-    /* Основная сетка контента */
-    .dashboard-grid {
+    /* Сетка для диаграмм */
+    .charts-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
       gap: 25px;
+      margin-bottom: 25px;
     }
 
-    @media (max-width: 600px) {
-      .dashboard-grid {
+    @media (max-width: 500px) {
+      .charts-grid {
         grid-template-columns: 1fr;
       }
     }
 
     .card {
       background: var(--card-bg);
-      padding: 20px;
+      padding: 22px;
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    .card h2 {
-      font-size: 1.1rem;
+    .card h3 {
+      font-size: 1rem;
       color: var(--primary-dark);
       margin-bottom: 15px;
       border-bottom: 2px solid var(--bg-light);
       padding-bottom: 8px;
     }
 
-    /* Таблицы */
+    /* Адаптивная таблица */
     .table-responsive {
       width: 100%;
       overflow-x: auto;
-      max-height: 400px;
+      max-height: 480px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
     }
 
     th, td {
-      padding: 10px 12px;
+      padding: 12px 14px;
       text-align: left;
       border-bottom: 1px solid #E2E8F0;
     }
@@ -181,17 +199,23 @@
       color: #ffffff;
       position: sticky;
       top: 0;
+      white-space: nowrap;
+      z-index: 10;
     }
 
     tr:nth-child(even) {
       background-color: #F8FAFC;
     }
 
-    /* Анимация загрузки */
+    tr:hover {
+      background-color: #EDF2F7;
+    }
+
     .loader {
       text-align: center;
-      padding: 40px;
+      padding: 50px;
       font-size: 1.2rem;
+      font-weight: 600;
       color: var(--primary);
     }
 
@@ -213,87 +237,40 @@
 
   <div class="container">
     <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('tercenter')">Терцентр</button>
-      <button class="tab-btn" onclick="switchTab('vpo')">ВПО</button>
-      <button class="tab-btn" onclick="switchTab('mcss')">МЦСС</button>
-      <button class="tab-btn" onclick="switchTab('ussd')">УССД</button>
+      <button class="tab-btn active" onclick="switchTab('tercenter', event)">Терцентр</button>
+      <button class="tab-btn" onclick="switchTab('vpo', event)">ВПО</button>
+      <button class="tab-btn" onclick="switchTab('mcss', event)">МЦСС</button>
+      <button class="tab-btn" onclick="switchTab('ussd', event)">УССД</button>
     </div>
 
-    <div id="loader" class="loader">Завантаження даних з Google Таблиці...</div>
+    <div id="loader" class="loader">Завантаження та аналіз даних з Google Таблиці...</div>
 
-    <div id="tercenter" class="tab-content active">
-      <div class="kpi-grid" id="tercenter-kpi"></div>
-      <div class="dashboard-grid">
-        <div class="card">
-          <h2>Графік показників (Терцентр)</h2>
-          <canvas id="chart-tercenter"></canvas>
-        </div>
-        <div class="card">
-          <h2>Детальні дані</h2>
-          <div class="table-responsive" id="table-tercenter"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="vpo" class="tab-content">
-      <div class="kpi-grid" id="vpo-kpi"></div>
-      <div class="dashboard-grid">
-        <div class="card">
-          <h2>Статистика ВПО</h2>
-          <canvas id="chart-vpo"></canvas>
-        </div>
-        <div class="card">
-          <h2>Реєстр даних ВПО</h2>
-          <div class="table-responsive" id="table-vpo"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="mcss" class="tab-content">
-      <div class="kpi-grid" id="mcss-kpi"></div>
-      <div class="dashboard-grid">
-        <div class="card">
-          <h2>Аналітика МЦСС</h2>
-          <canvas id="chart-mcss"></canvas>
-        </div>
-        <div class="card">
-          <h2>Данні МЦСС</h2>
-          <div class="table-responsive" id="table-mcss"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="ussd" class="tab-content">
-      <div class="kpi-grid" id="ussd-kpi"></div>
-      <div class="dashboard-grid">
-        <div class="card">
-          <h2>Розподіл показників УССД</h2>
-          <canvas id="chart-ussd"></canvas>
-        </div>
-        <div class="card">
-          <h2>Звіт УССД</h2>
-          <div class="table-responsive" id="table-ussd"></div>
-        </div>
-      </div>
-    </div>
+    <!-- Разделы дашборда -->
+    <div id="tercenter" class="tab-content active"></div>
+    <div id="vpo" class="tab-content"></div>
+    <div id="mcss" class="tab-content"></div>
+    <div id="ussd" class="tab-content"></div>
   </div>
 
   <script>
-    // Идентификатор таблицы
     const SPREADSHEET_ID = '134u7j5LmOTDUsBFhXEaV1ot7IpL1F2-MjBNGucQhh74';
 
-    // Конфигурация листов
     const SHEETS = {
-      tercenter: { gid: '0', title: 'Терцентр' },
-      vpo: { gid: '1089049457', title: 'ВПО' },
-      mcss: { gid: '802422810', title: 'МЦСС' },
-      ussd: { gid: '444173017', title: 'УССД' }
+      tercenter: { gid: '0', defaultTitle: 'Терцентр' },
+      vpo: { gid: '1089049457', defaultTitle: 'ВПО' },
+      mcss: { gid: '802422810', defaultTitle: 'МЦСС' },
+      ussd: { gid: '444173017', defaultTitle: 'УССД' }
     };
 
-    let charts = {};
+    let chartsStore = {};
 
-    // Переключение табов
-    function switchTab(tabId) {
+    // Цветовая палитра
+    const CHART_COLORS = [
+      '#003087', '#62B5E5', '#002855', '#2B6CB0', 
+      '#4299E1', '#63B3ED', '#3182CE', '#1A365D'
+    ];
+
+    function switchTab(tabId, event) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
@@ -301,134 +278,231 @@
       document.getElementById(tabId).classList.add('active');
     }
 
-    // Формирование ссылки CSV
     function getCsvUrl(gid) {
       return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
     }
 
-    // Загрузка всех данных
     async function loadAllData() {
       document.getElementById('loader').style.display = 'block';
-      
+
       for (const [key, sheet] of Object.entries(SHEETS)) {
         try {
           const url = getCsvUrl(sheet.gid);
           Papa.parse(url, {
             download: true,
-            header: true,
             skipEmptyLines: true,
             complete: function(results) {
-              renderSheetData(key, results.data);
+              processAndRender(key, results.data, sheet.defaultTitle);
             }
           });
         } catch (error) {
-          console.error(`Помилка завантаження листа ${sheet.title}:`, error);
+          console.error(`Помилка під час завантаження листа ${key}:`, error);
         }
       }
-      
+
       document.getElementById('loader').style.display = 'none';
     }
 
-    // Рендеринг данных листа
-    function renderSheetData(sheetKey, data) {
-      if (!data || data.length === 0) return;
+    function processAndRender(sheetKey, rawRows, defaultTitle) {
+      if (!rawRows || rawRows.length === 0) return;
 
-      const keys = Object.keys(data[0]);
+      // 1. Извлекаем Название таблицы из 1-й строки
+      let tableTitle = rawRows[0].find(cell => cell && cell.trim() !== '') || defaultTitle;
 
-      // 1. Рендер KPI карточек
-      renderKPI(sheetKey, data, keys);
-
-      // 2. Рендер Таблицы
-      renderTable(sheetKey, data, keys);
-
-      // 3. Рендер Диаграммы
-      renderChart(sheetKey, data, keys);
-    }
-
-    // Создание KPI
-    function renderKPI(sheetKey, data, keys) {
-      const container = document.getElementById(`${sheetKey}-kpi`);
-      container.innerHTML = '';
-
-      // Карточка 1: Всего записей
-      const cardTotal = document.createElement('div');
-      cardTotal.className = 'kpi-card';
-      cardTotal.innerHTML = `<h3>Всього записів</h3><div class="value">${data.length}</div>`;
-      container.appendChild(cardTotal);
-
-      // Карточка 2: Сумма первой числовой колонки (при наличии)
-      let numericCol = keys.find(k => !isNaN(parseFloat(data[0][k])));
-      if (numericCol) {
-        let sum = data.reduce((acc, row) => acc + (parseFloat(row[numericCol]) || 0), 0);
-        const cardSum = document.createElement('div');
-        cardSum.className = 'kpi-card';
-        cardSum.innerHTML = `<h3>Загалом (${numericCol})</h3><div class="value">${sum.toLocaleString('uk-UA')}</div>`;
-        container.appendChild(cardSum);
+      // 2. Ищем строку с заголовками столбцов (обычно 2-я строка)
+      let headerRowIndex = 1;
+      while (headerRowIndex < rawRows.length && rawRows[headerRowIndex].every(cell => !cell || cell.trim() === '')) {
+        headerRowIndex++;
       }
+
+      if (headerRowIndex >= rawRows.length) return;
+
+      const headers = rawRows[headerRowIndex].map((h, idx) => h && h.trim() !== '' ? h.trim() : `Колонка ${idx + 1}`);
+
+      // 3. Формируем массив объектов данных
+      const dataRows = [];
+      for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (row.some(cell => cell && cell.trim() !== '')) {
+          let rowObj = {};
+          headers.forEach((h, idx) => {
+            rowObj[h] = row[idx] ? row[idx].trim() : '';
+          });
+          dataRows.push(rowObj);
+        }
+      }
+
+      // 4. Построение интерфейса вкладки
+      const container = document.getElementById(sheetKey);
+      container.innerHTML = `
+        <div class="sheet-title-header">
+          <h2>${tableTitle}</h2>
+        </div>
+        <div class="kpi-grid" id="${sheetKey}-kpi"></div>
+        <div class="charts-grid" id="${sheetKey}-charts"></div>
+        <div class="card">
+          <h3>Повний реєстр даних</h3>
+          <div class="table-responsive" id="${sheetKey}-table"></div>
+        </div>
+      `;
+
+      renderKPIs(sheetKey, dataRows, headers);
+      renderTable(sheetKey, dataRows, headers);
+      generateMultipleCharts(sheetKey, dataRows, headers);
     }
 
-    // Построение таблицы
-    function renderTable(sheetKey, data, keys) {
-      const container = document.getElementById(`table-${sheetKey}`);
-      
+    // Рендеринг KPI карточек
+    function renderKPIs(sheetKey, data, headers) {
+      const kpiContainer = document.getElementById(`${sheetKey}-kpi`);
+      kpiContainer.innerHTML = '';
+
+      // KPI: Общее количество записей
+      kpiContainer.innerHTML += `
+        <div class="kpi-card">
+          <h4>Всього записів</h4>
+          <div class="value">${data.length}</div>
+        </div>
+      `;
+
+      // Поиск числовых колонок для карточек сумм
+      headers.forEach(header => {
+        let numericValues = data.map(r => parseNumber(r[header])).filter(v => !isNaN(v));
+        // Если больше половина строк содержит числа — считаем колонку числовой
+        if (numericValues.length > data.length * 0.3 && numericValues.length > 0) {
+          let sum = numericValues.reduce((a, b) => a + b, 0);
+          kpiContainer.innerHTML += `
+            <div class="kpi-card">
+              <h4>Сума: ${header}</h4>
+              <div class="value">${sum.toLocaleString('uk-UA')}</div>
+            </div>
+          `;
+        }
+      });
+    }
+
+    // Рендеринг Таблицы (с текстом и годами без потерь)
+    function renderTable(sheetKey, data, headers) {
+      const tableContainer = document.getElementById(`${sheetKey}-table`);
+
       let html = '<table><thead><tr>';
-      keys.forEach(key => { html += `<th>${key}</th>`; });
+      headers.forEach(h => { html += `<th>${h}</th>`; });
       html += '</tr></thead><tbody>';
 
       data.forEach(row => {
         html += '<tr>';
-        keys.forEach(key => {
-          html += `<td>${row[key] || '-'}</td>`;
+        headers.forEach(h => {
+          html += `<td>${row[h] !== undefined && row[h] !== '' ? row[h] : '-'}</td>`;
         });
         html += '</tr>';
       });
 
-      html += 'tbody></table>';
-      container.innerHTML = html;
+      html += '</tbody></table>';
+      tableContainer.innerHTML = html;
     }
 
-    // Построение графика
-    function renderChart(sheetKey, data, keys) {
-      const ctx = document.getElementById(`chart-${sheetKey}`);
+    // Генерация различных графиков под структуру данных
+    function generateMultipleCharts(sheetKey, data, headers) {
+      const chartsContainer = document.getElementById(`${sheetKey}-charts`);
+      chartsContainer.innerHTML = '';
+
+      if (data.length === 0) return;
+
+      const firstCol = headers[0]; // Основная колонка подписей (название, категория, год)
+
+      headers.forEach((header, idx) => {
+        if (idx === 0) return; // Пропускаем первую текстовую колонку
+
+        // Проверяем заполненность числовыми значениями
+        let values = data.map(r => parseNumber(r[header]));
+        let validNumCount = values.filter(v => !isNaN(v)).length;
+
+        if (validNumCount > 0) {
+          const chartCardId = `chart-card-${sheetKey}-${idx}`;
+          const canvasId = `chart-canvas-${sheetKey}-${idx}`;
+
+          // Добавляем карточку под диаграмму
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.id = chartCardId;
+          card.innerHTML = `
+            <h3>Розподіл / Динаміка: ${header}</h3>
+            <canvas id="${canvasId}"></canvas>
+          `;
+          chartsContainer.appendChild(card);
+
+          const labels = data.map(r => r[firstCol] || `Запис ${idx}`);
+          const cleanValues = values.map(v => isNaN(v) ? 0 : v);
+
+          // Выбор типа графика:
+          // Если категорий мало (<= 6) -> Pie/Doughnut, иначе Bar/Line
+          let chartType = 'bar';
+          if (labels.length <= 6) {
+            chartType = idx % 2 === 0 ? 'doughnut' : 'pie';
+          } else if (header.toLowerCase().includes('рік') || header.toLowerCase().includes('год') || header.toLowerCase().includes('дата')) {
+            chartType = 'line';
+          }
+
+          createChart(canvasId, chartType, labels, cleanValues, header);
+        }
+      });
+    }
+
+    // Вспомогательная функция очистки численных данных (работает с "2024 р.", "1 250,5" и т.д.)
+    function parseNumber(val) {
+      if (!val) return NaN;
+      let cleaned = val.toString().replace(/\s+/g, '').replace(',', '.');
+      let match = cleaned.match(/-?\d+(\.\d+)?/);
+      return match ? parseFloat(match[0]) : NaN;
+    }
+
+    // Функция отрисовки Chart.js
+    function createChart(canvasId, type, labels, dataValues, title) {
+      const ctx = document.getElementById(canvasId);
       if (!ctx) return;
 
-      const labelCol = keys[0]; // Первая колонка подписи
-      const valueCol = keys.find(k => !isNaN(parseFloat(data[0][k]))) || keys[1]; // Вторая колонка — значения
-
-      const labels = data.map(row => row[labelCol]);
-      const values = data.map(row => parseFloat(row[valueCol]) || 0);
-
-      // Удалить старый график при перезагрузке
-      if (charts[sheetKey]) {
-        charts[sheetKey].destroy();
+      if (chartsStore[canvasId]) {
+        chartsStore[canvasId].destroy();
       }
 
-      charts[sheetKey] = new Chart(ctx, {
-        type: 'bar',
+      const isPieOrDoughnut = type === 'pie' || type === 'doughnut';
+
+      chartsStore[canvasId] = new Chart(ctx, {
+        type: type,
         data: {
           labels: labels,
           datasets: [{
-            label: valueCol || 'Значення',
-            data: values,
-            backgroundColor: '#003087',
-            borderColor: '#002855',
-            borderWidth: 1,
-            borderRadius: 4
+            label: title,
+            data: dataValues,
+            backgroundColor: isPieOrDoughnut ? CHART_COLORS : '#003087',
+            borderColor: isPieOrDoughnut ? '#ffffff' : '#002855',
+            borderWidth: 1.5,
+            fill: type === 'line' ? false : true,
+            tension: 0.3
           }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: true,
           plugins: {
-            legend: { display: true }
+            legend: {
+              display: isPieOrDoughnut,
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label || ''}: ${context.raw}`;
+                }
+              }
+            }
           },
-          scales: {
+          scales: isPieOrDoughnut ? {} : {
             y: { beginAtZero: true }
           }
         }
       });
     }
 
-    // Инициализация при загрузке страницы
     window.onload = loadAllData;
   </script>
 </body>
