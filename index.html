@@ -112,7 +112,15 @@ tr:hover td{background:#eef7fc}
 <script>
 const CONFIG={
   SHEET_ID:"134u7j5LmOTDUsBFhXEaV1ot7IpL1F2-MjBNGucQhh74",
-  REFRESH_MINUTES:5
+  REFRESH_MINUTES:5,
+  // У Google-файле первые строки — заголовок блока, а настоящие заголовки начинаются со 2-й строки.
+  // Поэтому запрашиваем диапазоны начиная со строки 2.
+  RANGES:{
+    "Терцентр":"A2:D",
+    "ВПО":"A2:E",
+    "МЦСС":"A2:L",
+    "УССД":"A2:G"
+  }
 };
 const SHEETS=["Терцентр","ВПО","МЦСС","УССД"];
 let data={}, charts={};
@@ -131,7 +139,7 @@ function fmt(v){
 }
 function yearLabel(v){
   if(v===null||v===undefined) return "";
-  if(typeof v==="string") return v;
+  if(v instanceof Date) return v.toLocaleDateString("uk-UA");
   return String(v);
 }
 function cellValue(c){
@@ -139,18 +147,36 @@ function cellValue(c){
   if(c.v!==undefined && c.v!==null) return c.v;
   return null;
 }
-async function fetchSheet(name){
-  const url="https://docs.google.com/spreadsheets/d/"+CONFIG.SHEET_ID+"/gviz/tq?tqx=out:json&sheet="+encodeURIComponent(name);
-  const r=await fetch(url,{cache:"no-store"});
-  if(!r.ok) throw new Error(name+" HTTP "+r.status);
-  const text=await r.text();
-  const json=JSON.parse(text.substring(text.indexOf("{"),text.lastIndexOf("}")+1));
-  const cols=json.table.cols.map(c=>c.label||"");
-  const rows=json.table.rows.map(row=>row.c.map(cellValue));
-  return {cols,rows};
+
+// Google Sheets блокирует обычный fetch() для некоторых локально открытых HTML-файлов.
+// Используем JSONP через <script>, поэтому файл работает даже если открыть его двойным кликом.
+function fetchSheet(name){
+  return new Promise((resolve,reject)=>{
+    const cb="gsCallback_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+    const range=CONFIG.RANGES[name];
+    const url="https://docs.google.com/spreadsheets/d/"+CONFIG.SHEET_ID+"/gviz/tq?range="+encodeURIComponent(range)+"&tqx="+encodeURIComponent("out:json;responseHandler:"+cb);
+    const script=document.createElement("script");
+    let done=false;
+    const timer=setTimeout(()=>finish(new Error(name+": перевищено час очікування Google Sheets (15 с). Перевірте доступ таблиці.")),15000);
+    function finish(err,result){
+      if(done)return; done=true; clearTimeout(timer); script.remove(); delete window[cb]; err?reject(err):resolve(result);
+    }
+    window[cb]=json=>{
+      try{
+        if(!json || !json.table) throw new Error("Google Sheets повернув порожню відповідь");
+        const cols=(json.table.cols||[]).map(c=>c.label||"");
+        const rows=(json.table.rows||[]).map(row=>(row.c||[]).map(cellValue));
+        finish(null,{cols,rows});
+      }catch(e){finish(e)}
+    };
+    script.onerror=()=>finish(new Error(name+": Google Sheets не дозволив завантаження. Зробіть таблицю доступною за посиланням."));
+    script.src=url;
+    document.head.appendChild(script);
+  });
 }
 function latestRows(sheet){
-  return sheet.rows.filter(r=>r.some(v=>v!==null && v!=="")).filter(r=>r[0]!==null);
+  return sheet.rows.filter(r=>r && r.length && r[0]!==null && r[0]!==undefined && String(r[0]).trim()!=="")
+    .filter(r=>r.slice(1).some(v=>v!==null && v!==undefined && v!==""));
 }
 function headerIndex(sheet, phrase){
   const p=phrase.toLowerCase();
@@ -241,7 +267,7 @@ function renderVpo(){
  </div>
  <div class="card"><h2>Вихідні дані</h2><p class="desc">Дані листа «ВПО»</p>${tableHTML(s)}</div>`;
  lineChart("vpoChart",rows.map(r=>yearLabel(r[0]).slice(0,10)),[{label:"Обліковано ВПО",data:rows.map(r=>num(r[total]))}]);
- doughnut("vpoGender",["Чоловіки","Жінки","Діти"],[num(latest?.[men])||0,num(latest?.[women])||0,num(latest?.[children])||0)]);
+ doughnut("vpoGender",["Чоловіки","Жінки","Діти"],[num(latest?.[men])||0,num(latest?.[women])||0,num(latest?.[children])||0]);
 }
 function renderMcss(){
  const s=data["МЦСС"], rows=latestRows(s), latest=rows.at(-1);
@@ -266,7 +292,7 @@ function renderMcss(){
  const last=rows.at(-1);
  barChart("mcssBar",["Телефон довіри","Кризова кімната","Мобільна бригада"],[{
   label:yearLabel(last?.[0]),
-  data:[num(last?.[idx.phone])||0,num(last?.[idx.room])||0,num(last?.[idx.mobile])||0)
+  data:[num(last?.[idx.phone])||0,num(last?.[idx.room])||0,num(last?.[idx.mobile])||0]
  }]);
 }
 function renderUssd(){
@@ -293,17 +319,21 @@ function renderUssd(){
  barChart("ussdBar",["ДБСТ","Прийомні сім'ї","У закладах","Усиновлено"],[{label:yearLabel(last?.[0]),data:[num(last?.[idx.dbst])||0,num(last?.[idx.foster])||0,num(last?.[idx.inst])||0,num(last?.[idx.adopt])||0]}]);
 }
 async function loadAll(){
- document.getElementById("status").textContent="Оновлення…";
+ document.getElementById("status").textContent="Завантаження даних…";
+ document.querySelectorAll(".error").forEach(x=>x.remove());
  try{
   const results=await Promise.all(SHEETS.map(fetchSheet));
   SHEETS.forEach((n,i)=>data[n]=results[i]);
   renderOverview();renderTercenter();renderVpo();renderMcss();renderUssd();
+  const counts=SHEETS.map(n=>latestRows(data[n]).length).join(" / ");
   const now=new Date().toLocaleString("uk-UA");
   document.getElementById("status").textContent="Оновлено: "+now;
+  document.getElementById("sourceInfo").innerHTML=`<span class="badge">4 листи підключено</span><p style="font-size:12px;color:var(--muted);line-height:1.6">Терцентр · ВПО · МЦСС · УССД<br>Рядків: ${counts}<br>Автооновлення: кожні ${CONFIG.REFRESH_MINUTES} хв.</p>`;
  }catch(e){
   console.error(e);
   document.getElementById("status").textContent="Помилка завантаження";
-  document.querySelectorAll("section:not(.hidden)").forEach(x=>x.insertAdjacentHTML("afterbegin",`<div class="error">Не вдалося отримати дані Google Таблиці. Перевірте, що таблиця доступна за посиланням «усім, хто має посилання», і спробуйте оновити сторінку.<br><small>${e.message}</small></div>`));
+  const active=document.querySelector("main section:not(.hidden)");
+  if(active) active.insertAdjacentHTML("afterbegin",`<div class="error"><b>Не вдалося завантажити дані Google Таблиці.</b><br>Відкрийте доступ: «Усі, хто має посилання → Читач», а потім натисніть «Оновити».<br><small>${String(e.message).replace(/</g,"&lt;")}</small></div>`);
  }
 }
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
