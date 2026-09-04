@@ -322,7 +322,7 @@ function renderTercenter(){
   <div class="kpi"><div class="kpi-label">Обслуговано осіб</div><div class="kpi-value">${fmt(metricFor(rows,idx1,"tercenter"))}</div><div class="kpi-note">${period}</div></div>
   <div class="kpi"><div class="kpi-label">Догляд вдома</div><div class="kpi-value">${fmt(metricFor(rows,idx2,"tercenter"))}</div><div class="kpi-note">${period}</div></div>
   <div class="kpi"><div class="kpi-label">Денне перебування</div><div class="kpi-value">${fmt(metricFor(rows,idx3,"tercenter"))}</div><div class="kpi-note">${period}</div></div>
-  <div class="kpi"><div class="kpi-label">Період</div><div class="kpi-value" style="font-size:20px">${period}</div><div class="kpi-note">${yearFilters.tercenter==="all"?"агреговані значення":"значення за вибраний рік"}</div></div>
+  <div class="kpi"><div class="kpi-label">Період</div><div class="kpi-value" style="font-size:20px">${period}</div><div class="kpi-note">${yearFilters.tercenter==="all"?"З 2021 року":"значення за вибраний рік"}</div></div>
  </div>
  <div class="chart-grid">
   <div class="card"><h2>Динаміка отримувачів</h2><p class="desc">Основні показники за всіма доступними роками</p><div class="chart-wrap"><canvas id="terChart"></canvas></div></div>
