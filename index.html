@@ -297,9 +297,10 @@ function doughnut(id,labels,data){
 }
 function tableHTML(sheet, limit=10000, key=null){
   const rows=key ? getFilteredRows(sheet,key) : latestRows(sheet);
-  const headers=sheet.cols.filter((h,i)=>h || rows.some(r=>r[i]!==null));
+  const headers=[...(sheet.cols||[])];
+  if(headers.length) headers[0]="Роки";
   const idxs=sheet.cols.map((h,i)=>i).filter(i=>sheet.cols[i] || rows.some(r=>r[i]!==null));
-  return `<div class="table-wrap"><table><thead><tr>${idxs.map(i=>`<th>${sheet.cols[i]||"Показник"}</th>`).join("")}</tr></thead><tbody>${rows.slice(-limit).map(r=>`<tr>${idxs.map(i=>`<td>${displayCell(r[i],i)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap"><table><thead><tr>${idxs.map(i=>`<th>${headers[i]||"Показник"}</th>`).join("")}</tr></thead><tbody>${rows.slice(-limit).map(r=>`<tr>${idxs.map(i=>`<td>${displayCell(r[i],i)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 
 function renderTercenter(){
