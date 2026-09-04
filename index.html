@@ -1,509 +1,522 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Інформаційний Дашборд</title>
-  <!-- Chart.js v4 -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- PapaParse для парсинга CSV -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-  <style>
-    :root {
-      --primary-dark: #002855;   /* Pantone 295C */
-      --primary: #003087;        /* Pantone 287C */
-      --accent: #62B5E5;         /* Pantone 2915C */
-      --bg-light: #F4F7FA;
-      --card-bg: #FFFFFF;
-      --text-main: #1A202C;
-      --text-muted: #718096;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg-light);
-      color: var(--text-main);
-      padding-bottom: 50px;
-    }
-
-    header {
-      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-      color: #fff;
-      padding: 20px 5%;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-
-    header h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-    }
-
-    .refresh-btn {
-      background: var(--accent);
-      color: var(--primary-dark);
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .refresh-btn:hover {
-      filter: brightness(1.1);
-      transform: translateY(-1px);
-    }
-
-    .container {
-      max-width: 1500px;
-      margin: 25px auto;
-      padding: 0 20px;
-    }
-
-    /* Навигационные табы */
-    .nav-tabs {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 25px;
-      overflow-x: auto;
-      padding-bottom: 5px;
-    }
-
-    .tab-btn {
-      padding: 12px 24px;
-      background-color: var(--card-bg);
-      color: var(--primary-dark);
-      border: 2px solid transparent;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      transition: all 0.3s ease;
-      white-space: nowrap;
-    }
-
-    .tab-btn.active {
-      background-color: var(--primary);
-      color: #fff;
-      border-color: var(--primary-dark);
-    }
-
-    /* Название листа/таблицы из первой строки */
-    .sheet-title-header {
-      background: var(--card-bg);
-      padding: 18px 24px;
-      border-radius: 10px;
-      margin-bottom: 25px;
-      border-left: 6px solid var(--accent);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    .sheet-title-header h2 {
-      color: var(--primary-dark);
-      font-size: 1.3rem;
-    }
-
-    /* KPI Карточки */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      margin-bottom: 25px;
-    }
-
-    .kpi-card {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 10px;
-      border-top: 4px solid var(--primary);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    .kpi-card h4 {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .kpi-card .value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--primary-dark);
-      word-break: break-word;
-    }
-
-    /* Сетка для диаграмм */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-      gap: 25px;
-      margin-bottom: 25px;
-    }
-
-    @media (max-width: 500px) {
-      .charts-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 22px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    .card h3 {
-      font-size: 1rem;
-      color: var(--primary-dark);
-      margin-bottom: 15px;
-      border-bottom: 2px solid var(--bg-light);
-      padding-bottom: 8px;
-    }
-
-    /* Адаптивная таблица */
-    .table-responsive {
-      width: 100%;
-      overflow-x: auto;
-      max-height: 480px;
-      border-radius: 8px;
-      border: 1px solid #E2E8F0;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-    }
-
-    th, td {
-      padding: 12px 14px;
-      text-align: left;
-      border-bottom: 1px solid #E2E8F0;
-    }
-
-    th {
-      background-color: var(--primary-dark);
-      color: #ffffff;
-      position: sticky;
-      top: 0;
-      white-space: nowrap;
-      z-index: 10;
-    }
-
-    tr:nth-child(even) {
-      background-color: #F8FAFC;
-    }
-
-    tr:hover {
-      background-color: #EDF2F7;
-    }
-
-    .loader {
-      text-align: center;
-      padding: 50px;
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--primary);
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дашборд соціальної політики — Дніпро</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --blue:#003087; --sky:#62B5E5; --navy:#002855;
+  --bg:#f4f7fb; --card:#fff; --text:#18324b; --muted:#6b7d90;
+  --line:#e4ebf3; --soft:#edf6fc; --shadow:0 10px 30px rgba(0,40,85,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;position:sticky;top:0;z-index:20;box-shadow:0 5px 20px rgba(0,40,85,.18)}
+.header-inner{max-width:1400px;margin:auto;padding:18px 24px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none}
+.logo span{width:25px;height:27px;border:4px solid var(--blue);border-top:0;border-radius:0 0 13px 13px;position:relative}
+.logo span:before,.logo span:after{content:"";position:absolute;left:-3px;width:25px;height:7px;border-top:4px solid var(--blue);border-radius:50%}
+.logo span:before{top:-7px}.logo span:after{top:0}
+.title{font-size:22px;font-weight:800;letter-spacing:.1px}.subtitle{font-size:13px;opacity:.8;margin-top:3px}
+.container{max-width:1400px;margin:auto;padding:24px}
+.toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:#fff;color:var(--blue);padding:10px 15px;border-radius:11px;font-weight:700;cursor:pointer;transition:.2s}
+.tab:hover{border-color:var(--sky);transform:translateY(-1px)}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.actions{display:flex;align-items:center;gap:10px}
+button.refresh{border:0;background:var(--sky);color:var(--navy);font-weight:800;padding:10px 15px;border-radius:10px;cursor:pointer}
+.status{font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);padding:9px 12px;border-radius:10px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi:after{content:"";position:absolute;right:-22px;top:-22px;width:75px;height:75px;border-radius:50%;background:var(--soft)}
+.kpi-label{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:800}
+.kpi-value{font-size:29px;font-weight:900;color:var(--navy);margin-top:8px}
+.kpi-note{font-size:12px;color:var(--muted);margin-top:4px}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{margin:0 0 4px;font-size:17px;color:var(--navy)}
+.card p.desc{margin:0 0 15px;font-size:12px;color:var(--muted)}
+.chart-wrap{height:320px;position:relative}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:760px;background:#fff}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:12px;position:sticky;top:0;z-index:2}
+td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;white-space:nowrap}
+tr:nth-child(even) td{background:#f8fbfd}
+tr:hover td{background:#eef7fc}
+.badge{display:inline-block;padding:5px 8px;border-radius:999px;background:#e9f5fc;color:var(--blue);font-size:11px;font-weight:800}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:20px 0 12px}
+.section-title h1{font-size:23px;margin:0;color:var(--navy)} .section-title span{font-size:12px;color:var(--muted)}
+.note{padding:12px 14px;background:#eef7fc;border-left:4px solid var(--sky);border-radius:8px;font-size:12px;color:#46647d;margin-bottom:16px}
+.footer{margin-top:30px;background:var(--navy);color:#fff;padding:18px 24px}
+.footer-inner{max-width:1400px;margin:auto;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;font-size:12px;opacity:.9}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+.chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}.table-wrap{overflow:auto}.table-wrap table{min-width:max-content}.table-wrap th{white-space:normal;min-width:120px}.table-wrap th:first-child,.table-wrap td:first-child{position:sticky;left:0;z-index:3}.table-wrap th:first-child{z-index:5}.table-wrap td:first-child{background:#fff;font-weight:700}@media(max-width:900px){.chart-grid{grid-template-columns:1fr}}
+.search{padding:10px 12px;border:1px solid var(--line);border-radius:10px;outline:none;min-width:220px}
+.search:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(98,181,229,.15)}
+.year-filter{display:flex;align-items:center;gap:8px;margin:0 0 14px;flex-wrap:wrap}.year-filter label{font-size:12px;font-weight:800;color:var(--muted)}.year-filter select{border:1px solid var(--line);background:#fff;color:var(--navy);padding:9px 12px;border-radius:10px;font-weight:700;outline:none;cursor:pointer}.year-filter select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(98,181,229,.15)}
+.hidden{display:none!important}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+@media(max-width:620px){.container{padding:14px}.header-inner{padding:14px}.title{font-size:17px}.logo{width:40px;height:40px}.kpis{grid-template-columns:1fr 1fr;gap:9px}.kpi{padding:13px}.kpi-value{font-size:22px}.tab{padding:8px 10px;font-size:12px}.search{width:100%;min-width:0}.actions{width:100%}.status{flex:1}.refresh{flex:none}.chart-wrap{height:250px}}
+</style>
 </head>
 <body>
-
-  <header>
-    <h1>Аналітичний Дашборд</h1>
-    <button class="refresh-btn" onclick="loadAllData()">Оновити дані</button>
-  </header>
-
-  <div class="container">
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('tercenter', event)">Терцентр</button>
-      <button class="tab-btn" onclick="switchTab('vpo', event)">ВПО</button>
-      <button class="tab-btn" onclick="switchTab('mcss', event)">МЦСС</button>
-      <button class="tab-btn" onclick="switchTab('ussd', event)">УССД</button>
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div><div class="title">Дашборд соціальної політики м. Дніпро</div><div class="subtitle">Моніторинг соціальних послуг, ВПО та захисту дітей</div></div>
     </div>
+  </div>
+</header>
 
-    <div id="loader" class="loader">Завантаження та аналіз даних з Google Таблиці...</div>
-
-    <!-- Разделы дашборда -->
-    <div id="tercenter" class="tab-content active"></div>
-    <div id="vpo" class="tab-content"></div>
-    <div id="mcss" class="tab-content"></div>
-    <div id="ussd" class="tab-content"></div>
+<main class="container">
+  <div class="toolbar">
+    <div class="tabs">
+      <button class="tab" data-page="tercenter">Терцентр</button>
+      <button class="tab" data-page="vpo">ВПО</button>
+      <button class="tab" data-page="mcss">МЦСС</button>
+      <button class="tab" data-page="ussd">УССД</button>
+    </div>
+    <div class="actions">
+      <span class="status" id="status">Завантаження даних…</span>
+      <button class="refresh" onclick="loadAll()">↻ Оновити</button>
+    </div>
   </div>
 
-  <script>
-    const SPREADSHEET_ID = '134u7j5LmOTDUsBFhXEaV1ot7IpL1F2-MjBNGucQhh74';
+  <section id="page-tercenter" class="hidden"></section>
+  <section id="page-vpo" class="hidden"></section>
+  <section id="page-mcss" class="hidden"></section>
+  <section id="page-ussd" class="hidden"></section>
+</main>
 
-    const SHEETS = {
-      tercenter: { gid: '0', defaultTitle: 'Терцентр' },
-      vpo: { gid: '1089049457', defaultTitle: 'ВПО' },
-      mcss: { gid: '802422810', defaultTitle: 'МЦСС' },
-      ussd: { gid: '444173017', defaultTitle: 'УССД' }
-    };
+<footer class="footer"><div class="footer-inner"><span>Дашборд соціальної політики м. Дніпро</span><span>Розроблено КП «ІНФО-РАДА-ДНІПРО»</span></div></footer>
 
-    let chartsStore = {};
+<script>
+const CONFIG={
+  SHEET_ID:"134u7j5LmOTDUsBFhXEaV1ot7IpL1F2-MjBNGucQhh74",
+  REFRESH_MINUTES:5,
+  // Перший рядок — назва блоку, другий — заголовки, далі — дані.
+  // Беремо фіксовані діапазони, щоб останній рядок 2026 ніколи не губився.
+  SHEETS:{
+    "Терцентр":{gid:"0",range:"A1:D500"},
+    "ВПО":{gid:"1089049457",range:"A1:E500"},
+    "МЦСС":{gid:"802422810",range:"A1:Z2000"},
+    "УССД":{gid:"444173017",range:"A1:Z500"}
+  }
+};
+const SHEETS=["Терцентр","ВПО","МЦСС","УССД"];
+let data={}, charts={}, yearFilters={tercenter:"all",vpo:"all",mcss:"all",ussd:"all"};
 
-    // Цветовая палитра
-    const CHART_COLORS = [
-      '#003087', '#62B5E5', '#002855', '#2B6CB0', 
-      '#4299E1', '#63B3ED', '#3182CE', '#1A365D'
-    ];
+function num(v){
+  if(v===null||v===undefined||v==="—"||v==="") return null;
+  if(typeof v==="number") return v;
+  let s=String(v).replace(/\u00a0/g," ").trim().replace(/\s/g,"").replace(",",".");
+  let n=Number(s.replace(/[^\d.-]/g,""));
+  return Number.isFinite(n)?n:null;
+}
+function fmt(v){
+  if(v===null||v===undefined||v==="—"||v==="") return "—";
+  let n=num(v);
+  return n!==null ? n.toLocaleString("uk-UA") : String(v);
+}
+function yearLabel(v){
+  if(v===null||v===undefined) return "";
+  if(v instanceof Date) return v.toLocaleDateString("uk-UA");
+  const s=String(v).trim();
 
-    function switchTab(tabId, event) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      
-      event.target.classList.add('active');
-      document.getElementById(tabId).classList.add('active');
+  // Google Visualization may return dates as Date(YYYY,M,D)
+  const m=s.match(/^Date\((\d{4}),(\d+),(\d+)\)$/);
+  if(m){
+    const d=new Date(Number(m[1]),Number(m[2]),Number(m[3]));
+    return d.toLocaleDateString("uk-UA");
+  }
+  return s;
+}
+function displayCell(v,i){
+  if(v===null||v===undefined||v==="") return "";
+  if(v instanceof Date) return v.toLocaleDateString("uk-UA");
+  const s=String(v).trim();
+  if(s==="—" || s==="–" || s==="-" ) return "";
+  const m=s.match(/^Date\((\d{4}),(\d+),(\d+)\)$/);
+  if(m){
+    const d=new Date(Number(m[1]),Number(m[2]),Number(m[3]));
+    return d.toLocaleDateString("uk-UA");
+  }
+  return i===0 ? s : fmt(v);
+}
+function cellValue(c){
+  if(!c) return null;
+  if(c.v!==undefined && c.v!==null) return c.v;
+  if(c.f!==undefined && c.f!==null) return c.f;
+  return null;
+}
+
+// Google Sheets блокирует обычный fetch() для некоторых локально открытых HTML-файлов.
+// Используем JSONP через <script>, поэтому файл работает даже если открыть его двойным кликом.
+function fetchSheet(name){
+  return new Promise((resolve,reject)=>{
+    const cb="gsCallback_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+    const cfg=CONFIG.SHEETS[name];
+    const url="https://docs.google.com/spreadsheets/d/"+CONFIG.SHEET_ID+"/gviz/tq?gid="+encodeURIComponent(cfg.gid)+"&range="+encodeURIComponent(cfg.range)+"&tqx="+encodeURIComponent("out:json;responseHandler:"+cb)+"&_="+Date.now();
+    const script=document.createElement("script");
+    let done=false;
+    const timer=setTimeout(()=>finish(new Error(name+": перевищено час очікування Google Sheets (15 с). Перевірте доступ таблиці.")),15000);
+    function finish(err,result){
+      if(done)return; done=true; clearTimeout(timer); script.remove(); delete window[cb]; err?reject(err):resolve(result);
     }
+    window[cb]=json=>{
+      try{
+        if(!json || !json.table) throw new Error("Google Sheets повернув порожню відповідь");
+        const rawRows=(json.table.rows||[]).map(row=>(row.c||[]).map(cellValue));
 
-    function getCsvUrl(gid) {
-      return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
-    }
-
-    async function loadAllData() {
-      document.getElementById('loader').style.display = 'block';
-
-      for (const [key, sheet] of Object.entries(SHEETS)) {
-        try {
-          const url = getCsvUrl(sheet.gid);
-          Papa.parse(url, {
-            download: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-              processAndRender(key, results.data, sheet.defaultTitle);
-            }
-          });
-        } catch (error) {
-          console.error(`Помилка під час завантаження листа ${key}:`, error);
-        }
-      }
-
-      document.getElementById('loader').style.display = 'none';
-    }
-
-    function processAndRender(sheetKey, rawRows, defaultTitle) {
-      if (!rawRows || rawRows.length === 0) return;
-
-      // 1. Извлекаем Название таблицы из 1-й строки
-      let tableTitle = rawRows[0].find(cell => cell && cell.trim() !== '') || defaultTitle;
-
-      // 2. Ищем строку с заголовками столбцов (обычно 2-я строка)
-      let headerRowIndex = 1;
-      while (headerRowIndex < rawRows.length && rawRows[headerRowIndex].every(cell => !cell || cell.trim() === '')) {
-        headerRowIndex++;
-      }
-
-      if (headerRowIndex >= rawRows.length) return;
-
-      const headers = rawRows[headerRowIndex].map((h, idx) => h && h.trim() !== '' ? h.trim() : `Колонка ${idx + 1}`);
-
-      // 3. Формируем массив объектов данных
-      const dataRows = [];
-      for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
-        const row = rawRows[i];
-        if (row.some(cell => cell && cell.trim() !== '')) {
-          let rowObj = {};
-          headers.forEach((h, idx) => {
-            rowObj[h] = row[idx] ? row[idx].trim() : '';
-          });
-          dataRows.push(rowObj);
-        }
-      }
-
-      // 4. Построение интерфейса вкладки
-      const container = document.getElementById(sheetKey);
-      container.innerHTML = `
-        <div class="sheet-title-header">
-          <h2>${tableTitle}</h2>
-        </div>
-        <div class="kpi-grid" id="${sheetKey}-kpi"></div>
-        <div class="charts-grid" id="${sheetKey}-charts"></div>
-        <div class="card">
-          <h3>Повний реєстр даних</h3>
-          <div class="table-responsive" id="${sheetKey}-table"></div>
-        </div>
-      `;
-
-      renderKPIs(sheetKey, dataRows, headers);
-      renderTable(sheetKey, dataRows, headers);
-      generateMultipleCharts(sheetKey, dataRows, headers);
-    }
-
-    // Рендеринг KPI карточек
-    function renderKPIs(sheetKey, data, headers) {
-      const kpiContainer = document.getElementById(`${sheetKey}-kpi`);
-      kpiContainer.innerHTML = '';
-
-      // KPI: Общее количество записей
-      kpiContainer.innerHTML += `
-        <div class="kpi-card">
-          <h4>Всього записів</h4>
-          <div class="value">${data.length}</div>
-        </div>
-      `;
-
-      // Поиск числовых колонок для карточек сумм
-      headers.forEach(header => {
-        let numericValues = data.map(r => parseNumber(r[header])).filter(v => !isNaN(v));
-        // Если больше половина строк содержит числа — считаем колонку числовой
-        if (numericValues.length > data.length * 0.3 && numericValues.length > 0) {
-          let sum = numericValues.reduce((a, b) => a + b, 0);
-          kpiContainer.innerHTML += `
-            <div class="kpi-card">
-              <h4>Сума: ${header}</h4>
-              <div class="value">${sum.toLocaleString('uk-UA')}</div>
-            </div>
-          `;
-        }
-      });
-    }
-
-    // Рендеринг Таблицы (с текстом и годами без потерь)
-    function renderTable(sheetKey, data, headers) {
-      const tableContainer = document.getElementById(`${sheetKey}-table`);
-
-      let html = '<table><thead><tr>';
-      headers.forEach(h => { html += `<th>${h}</th>`; });
-      html += '</tr></thead><tbody>';
-
-      data.forEach(row => {
-        html += '<tr>';
-        headers.forEach(h => {
-          html += `<td>${row[h] !== undefined && row[h] !== '' ? row[h] : '-'}</td>`;
+        // Gviz can return the first spreadsheet title row as part of the range.
+        // Find the actual header row by looking for one of the known first-column labels.
+        const headerPos = rawRows.findIndex(r=>{
+          const first = String(r?.[0] ?? "").trim().toLowerCase();
+          return ["роки","дата","рік"].includes(first);
         });
-        html += '</tr>';
-      });
 
-      html += '</tbody></table>';
-      tableContainer.innerHTML = html;
-    }
-
-    // Генерация различных графиков под структуру данных
-    function generateMultipleCharts(sheetKey, data, headers) {
-      const chartsContainer = document.getElementById(`${sheetKey}-charts`);
-      chartsContainer.innerHTML = '';
-
-      if (data.length === 0) return;
-
-      const firstCol = headers[0]; // Основная колонка подписей (название, категория, год)
-
-      headers.forEach((header, idx) => {
-        if (idx === 0) return; // Пропускаем первую текстовую колонку
-
-        // Проверяем заполненность числовыми значениями
-        let values = data.map(r => parseNumber(r[header]));
-        let validNumCount = values.filter(v => !isNaN(v)).length;
-
-        if (validNumCount > 0) {
-          const chartCardId = `chart-card-${sheetKey}-${idx}`;
-          const canvasId = `chart-canvas-${sheetKey}-${idx}`;
-
-          // Добавляем карточку под диаграмму
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.id = chartCardId;
-          card.innerHTML = `
-            <h3>Розподіл / Динаміка: ${header}</h3>
-            <canvas id="${canvasId}"></canvas>
-          `;
-          chartsContainer.appendChild(card);
-
-          const labels = data.map(r => r[firstCol] || `Запис ${idx}`);
-          const cleanValues = values.map(v => isNaN(v) ? 0 : v);
-
-          // Выбор типа графика:
-          // Если категорий мало (<= 6) -> Pie/Doughnut, иначе Bar/Line
-          let chartType = 'bar';
-          if (labels.length <= 6) {
-            chartType = idx % 2 === 0 ? 'doughnut' : 'pie';
-          } else if (header.toLowerCase().includes('рік') || header.toLowerCase().includes('год') || header.toLowerCase().includes('дата')) {
-            chartType = 'line';
-          }
-
-          createChart(canvasId, chartType, labels, cleanValues, header);
+        let cols;
+        let rows;
+        if(headerPos >= 0){
+          cols = rawRows[headerPos].map(v=>v==null?"":String(v));
+          rows = rawRows.slice(headerPos+1);
+        }else{
+          cols=(json.table.cols||[]).map(c=>c.label||"");
+          rows=rawRows;
         }
-      });
-    }
 
-    // Вспомогательная функция очистки численных данных (работает с "2024 р.", "1 250,5" и т.д.)
-    function parseNumber(val) {
-      if (!val) return NaN;
-      let cleaned = val.toString().replace(/\s+/g, '').replace(',', '.');
-      let match = cleaned.match(/-?\d+(\.\d+)?/);
-      return match ? parseFloat(match[0]) : NaN;
-    }
+        // Trim only completely empty cells at the right edge; never remove a row
+        // just because its indicators are empty (2026 in МЦСС is intentionally kept).
+        rows = rows.map(r=>{
+          const copy = Array.from(r||[]);
+          while(copy.length && (copy[copy.length-1]===null || copy[copy.length-1]===undefined || copy[copy.length-1]==="")) copy.pop();
+          return copy;
+        });
 
-    // Функция отрисовки Chart.js
-    function createChart(canvasId, type, labels, dataValues, title) {
-      const ctx = document.getElementById(canvasId);
-      if (!ctx) return;
+        finish(null,{cols,rows});
+      }catch(e){finish(e)}
+    };
+    script.onerror=()=>finish(new Error(name+": Google Sheets не дозволив завантаження. Зробіть таблицю доступною за посиланням."));
+    script.src=url;
+    document.head.appendChild(script);
+  });
+}
+function latestRows(sheet){
+  // ВСІ рядки з першою заповненою клітинкою. Рядок 2026 не відкидається
+  // навіть якщо частина показників порожня.
+  return (sheet.rows||[]).filter(r=>{
+    const v=r && r[0];
+    return v!==null && v!==undefined && String(v).trim()!=="";
+  });
+}
+function rowYear(v){
+  const s=yearLabel(v);
+  const m=String(s).match(/(?:^|\D)(20\d{2})(?:\D|$)/);
+  return m ? m[1] : String(s).trim();
+}
+function availableYears(sheet){
+  return [...new Set(latestRows(sheet).map(r=>rowYear(r[0])).filter(Boolean))].sort((a,b)=>Number(a)-Number(b));
+}
+function getFilteredRows(sheet,key){
+  const rows=latestRows(sheet);
+  const selected=yearFilters[key] || "all";
+  return selected==="all" ? rows : rows.filter(r=>rowYear(r[0])===selected);
+}
+function sumColumn(rows, idx){
+  if(idx<0) return null;
+  let total=0, found=false;
+  rows.forEach(r=>{
+    const n=num(r?.[idx]);
+    if(n!==null){ total+=n; found=true; }
+  });
+  return found ? total : null;
+}
+function metricFor(rows, idx, key){
+  if(!rows.length || idx<0) return null;
+  const selected=yearFilters[key] || "all";
+  // A selected year means exactly that year's record.
+  if(selected!=="all") return rows[0]?.[idx] ?? null;
+  // "Усі роки" means aggregate the indicator column.
+  return sumColumn(rows,idx);
+}
+function periodLabel(rows,key){
+  const selected=yearFilters[key] || "all";
+  return selected==="all" ? "Усі роки" : yearLabel(rows[0]?.[0]);
+}
+function columnIndex(sheet, phrases, fallback=-1){
+  for(const phrase of phrases){
+    const i=headerIndex(sheet,phrase);
+    if(i>=0) return i;
+  }
+  return fallback;
+}
 
-      if (chartsStore[canvasId]) {
-        chartsStore[canvasId].destroy();
-      }
+function yearFilterHTML(key,sheet){
+  const years=availableYears(sheet);
+  const selected=yearFilters[key] || "all";
+  return `<div class="year-filter"><label for="year-${key}">Фільтр за роком:</label><select id="year-${key}" onchange="setYearFilter('${key}',this.value)"><option value="all" ${selected==='all'?'selected':''}>Усі роки</option>${years.map(y=>`<option value="${y}" ${selected===y?'selected':''}>${y}</option>`).join('')}</select></div>`;
+}
+function setYearFilter(key,value){
+  yearFilters[key]=value;
+  renderPage(key);
+}
+function renderPage(key){
+  if(key==='tercenter') renderTercenter();
+  else if(key==='vpo') renderVpo();
+  else if(key==='mcss') renderMcss();
+  else if(key==='ussd') renderUssd();
+}
+function headerIndex(sheet, phrase){
+  const p=phrase.toLowerCase();
+  return sheet.cols.findIndex(x=>x.toLowerCase().includes(p));
+}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+function lineChart(id,labels,datasets){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:"line",
+    data:{labels,datasets:datasets.map((d,i)=>({label:d.label,data:d.data,borderColor:i%2?"#62B5E5":"#003087",backgroundColor:i%2?"rgba(98,181,229,.12)":"rgba(0,48,135,.08)",tension:.3,fill:true,pointRadius:3,spanGaps:true}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{usePointStyle:true}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>Number(v).toLocaleString("uk-UA")}},x:{grid:{display:false}}}}
+  });
+}
+function barChart(id,labels,datasets){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:"bar",data:{labels,datasets:datasets.map((d,i)=>({label:d.label,data:d.data,backgroundColor:i%2?"#62B5E5":"#003087",borderRadius:7}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:true,ticks:{callback:v=>Number(v).toLocaleString("uk-UA")}},x:{grid:{display:false}}}}
+  });
+}
+function doughnut(id,labels,data){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{type:"doughnut",data:{labels,datasets:[{data,backgroundColor:["#003087","#62B5E5","#002855","#8bc7e8","#5d78a8"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}}});
+}
+function tableHTML(sheet, limit=10000, key=null){
+  const rows=key ? getFilteredRows(sheet,key) : latestRows(sheet);
+  const headers=sheet.cols.filter((h,i)=>h || rows.some(r=>r[i]!==null));
+  const idxs=sheet.cols.map((h,i)=>i).filter(i=>sheet.cols[i] || rows.some(r=>r[i]!==null));
+  return `<div class="table-wrap"><table><thead><tr>${idxs.map(i=>`<th>${sheet.cols[i]||"Показник"}</th>`).join("")}</tr></thead><tbody>${rows.slice(-limit).map(r=>`<tr>${idxs.map(i=>`<td>${displayCell(r[i],i)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
 
-      const isPieOrDoughnut = type === 'pie' || type === 'doughnut';
+function renderTercenter(){
+ const s=data["Терцентр"], rows=getFilteredRows(s,"tercenter");
+ const idx1=columnIndex(s,["обслуговано осіб"],1);
+ const idx2=columnIndex(s,["догляд вдома"],2);
+ const idx3=columnIndex(s,["денного перебування"],3);
+ const period=periodLabel(rows,"tercenter");
+ document.getElementById("page-tercenter").innerHTML=`
+ <div class="section-title"><div><h1>Територіальний центр</h1><span>Кількість отримувачів соціальних послуг</span></div></div>
+ ${yearFilterHTML("tercenter",s)}
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">Обслуговано осіб</div><div class="kpi-value">${fmt(metricFor(rows,idx1,"tercenter"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Догляд вдома</div><div class="kpi-value">${fmt(metricFor(rows,idx2,"tercenter"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Денне перебування</div><div class="kpi-value">${fmt(metricFor(rows,idx3,"tercenter"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Період</div><div class="kpi-value" style="font-size:20px">${period}</div><div class="kpi-note">${yearFilters.tercenter==="all"?"агреговані значення":"значення за вибраний рік"}</div></div>
+ </div>
+ <div class="chart-grid">
+  <div class="card"><h2>Динаміка отримувачів</h2><p class="desc">Основні показники за всіма доступними роками</p><div class="chart-wrap"><canvas id="terChart"></canvas></div></div>
+  <div class="card"><h2>Порівняння показників</h2><p class="desc">Обслуговано осіб та окремі види послуг</p><div class="chart-wrap"><canvas id="terBar"></canvas></div></div>
+ </div>
+ <div class="card" style="margin-top:16px"><h2>Вихідні дані</h2><p class="desc">Дані листа «Терцентр»</p>${tableHTML(s,10000,"tercenter")}</div>`;
+ lineChart("terChart",rows.map(r=>yearLabel(r[0])),[
+  {label:"Обслуговано осіб",data:rows.map(r=>num(r[idx1]))},
+  {label:"Догляд вдома",data:rows.map(r=>num(r[idx2]))},
+  {label:"Денне перебування",data:rows.map(r=>num(r[idx3]))}
+ ]);
+ barChart("terBar",rows.map(r=>yearLabel(r[0])),[
+  {label:"Обслуговано осіб",data:rows.map(r=>num(r[idx1]))},
+  {label:"Догляд вдома",data:rows.map(r=>num(r[idx2]))},
+  {label:"Денне перебування",data:rows.map(r=>num(r[idx3]))}
+ ]);
+}
 
-      chartsStore[canvasId] = new Chart(ctx, {
-        type: type,
-        data: {
-          labels: labels,
-          datasets: [{
-            label: title,
-            data: dataValues,
-            backgroundColor: isPieOrDoughnut ? CHART_COLORS : '#003087',
-            borderColor: isPieOrDoughnut ? '#ffffff' : '#002855',
-            borderWidth: 1.5,
-            fill: type === 'line' ? false : true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: isPieOrDoughnut,
-              position: 'bottom'
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `${context.dataset.label || ''}: ${context.raw}`;
-                }
-              }
-            }
-          },
-          scales: isPieOrDoughnut ? {} : {
-            y: { beginAtZero: true }
-          }
-        }
-      });
-    }
+function renderVpo(){
+ const s=data["ВПО"], rows=getFilteredRows(s,"vpo");
 
-    window.onload = loadAllData;
-  </script>
+ // Структура листа ВПО:
+ // 0 = Дата, 1 = Обліковано ВПО, 2 = чоловіків,
+ // 3 = жінок, 4 = дітей.
+ const total=1, men=2, women=3, children=4;
+ const selected=yearFilters.vpo || "all";
+
+ // При «Усі роки» показуємо суму всіх числових значень колонок.
+ // При виборі конкретного року — значення саме цього рядка.
+ const metric = idx => selected==="all"
+   ? sumColumn(rows,idx)
+   : (rows.length ? rows[0]?.[idx] ?? null : null);
+
+ const totalValue=metric(total);
+ const menValue=metric(men);
+ const womenValue=metric(women);
+ const childrenValue=metric(children);
+ const period=periodLabel(rows,"vpo");
+
+ document.getElementById("page-vpo").innerHTML=`
+ <div class="section-title"><div><h1>Внутрішньо переміщені особи</h1><span>Обліковано ВПО у м. Дніпро</span></div></div>
+ ${yearFilterHTML("vpo",s)}
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">Всього ВПО</div><div class="kpi-value">${fmt(totalValue)}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Чоловіків</div><div class="kpi-value">${fmt(menValue)}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Жінок</div><div class="kpi-value">${fmt(womenValue)}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Дітей</div><div class="kpi-value">${fmt(childrenValue)}</div><div class="kpi-note">${period}</div></div>
+ </div>
+ <div class="chart-grid">
+  <div class="card"><h2>Динаміка обліку ВПО</h2><p class="desc">Значення з листа «ВПО»</p><div class="chart-wrap"><canvas id="vpoChart"></canvas></div></div>
+  <div class="card"><h2>Структура ВПО</h2><p class="desc">${period}</p><div class="chart-wrap"><canvas id="vpoGender"></canvas></div></div>
+  <div class="card"><h2>Чоловіки, жінки та діти</h2><p class="desc">Динаміка за всіма доступними датами</p><div class="chart-wrap"><canvas id="vpoPeople"></canvas></div></div>
+ </div>
+ <div class="card"><h2>Вихідні дані</h2><p class="desc">Дані листа «ВПО»</p>${tableHTML(s,10000,"vpo")}</div>`;
+
+ lineChart("vpoChart",
+   rows.map(r=>yearLabel(r[0]).slice(0,10)),
+   [{label:"Обліковано ВПО",data:rows.map(r=>num(r[total]))}]
+ );
+
+ doughnut("vpoGender",
+   ["Чоловіки","Жінки","Діти"],
+   [num(menValue)||0,num(womenValue)||0,num(childrenValue)||0]
+ );
+
+ lineChart("vpoPeople",
+   rows.map(r=>yearLabel(r[0]).slice(0,10)),
+   [
+    {label:"Чоловіки",data:rows.map(r=>num(r[men]))},
+    {label:"Жінки",data:rows.map(r=>num(r[women]))},
+    {label:"Діти",data:rows.map(r=>num(r[children]))}
+   ]
+ );
+}
+
+function renderMcss(){
+ const s=data["МЦСС"], rows=getFilteredRows(s,"mcss");
+ const idx={
+  families:columnIndex(s,["соціальними послугами, сімей"],1),
+  persons:columnIndex(s,["соціальними послугами, осіб"],2),
+  kids:columnIndex(s,["соціальними послугами, дітей"],3),
+  support:columnIndex(s,["соціальним супроводом"],4),
+  phone:columnIndex(s,["телефон довіри"],8),
+  room:columnIndex(s,["кризовій кімнаті"],9),
+  mobileMsg:columnIndex(s,["повідомлень / звернень до"],10),
+  mobile:columnIndex(s,["виїздів","мобільної бригади"],11)
+ };
+ const period=periodLabel(rows,"mcss");
+ document.getElementById("page-mcss").innerHTML=`
+ <div class="section-title"><div><h1>Дніпровський міський центр соціальних служб</h1><span>Охоплено соціальними послугами</span></div></div>
+ ${yearFilterHTML("mcss",s)}
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">Сімей</div><div class="kpi-value">${fmt(metricFor(rows,idx.families,"mcss"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Осіб</div><div class="kpi-value">${fmt(metricFor(rows,idx.persons,"mcss"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Дітей</div><div class="kpi-value">${fmt(metricFor(rows,idx.kids,"mcss"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Соціальний супровід</div><div class="kpi-value">${fmt(metricFor(rows,idx.support,"mcss"))}</div><div class="kpi-note">${period}</div></div>
+ </div>
+ <div class="chart-grid">
+  <div class="card"><h2>Охоплення соціальними послугами</h2><p class="desc">Сім'ї, особи та діти</p><div class="chart-wrap"><canvas id="mcssChart"></canvas></div></div>
+  <div class="card"><h2>Соціальний супровід та сімейні форми</h2><p class="desc">Супровід, прийомні сім'ї, ДБСТ та опікуни</p><div class="chart-wrap"><canvas id="mcssFamilies"></canvas></div></div>
+  <div class="card"><h2>Звернення та кризова допомога</h2><p class="desc">${period}</p><div class="chart-wrap"><canvas id="mcssBar"></canvas></div></div>
+ </div>
+ <div class="card"><h2>Вихідні дані</h2><p class="desc">У таблиці відображаються всі фактичні колонки листа «МЦСС»</p>${tableHTML(s,10000,"mcss")}</div>`;
+ lineChart("mcssChart",rows.map(r=>yearLabel(r[0])),[
+  {label:"Охоплено сімей",data:rows.map(r=>num(r[idx.families]))},
+  {label:"Охоплено осіб",data:rows.map(r=>num(r[idx.persons]))},
+  {label:"Охоплено дітей",data:rows.map(r=>num(r[idx.kids]))}
+ ]);
+ lineChart("mcssFamilies",rows.map(r=>yearLabel(r[0])),[
+  {label:"Соціальний супровід",data:rows.map(r=>num(r[idx.support]))},
+  {label:"Прийомні сім'ї",data:rows.map(r=>num(r[columnIndex(s,["прийомні сім'ї"],5)]))},
+  {label:"ДБСТ",data:rows.map(r=>num(r[columnIndex(s,["дбст"],6)]))},
+  {label:"Сім'ї опікунів/піклувальників",data:rows.map(r=>num(r[columnIndex(s,["опікунів/піклувальників"],7)]))}
+ ]);
+ const last=rows.length ? rows[rows.length-1] : null;
+ barChart("mcssBar",["Телефон довіри","Кризова кімната","Мобільна бригада — звернення","Мобільна бригада — виїзди"],[{
+  label:period,
+  data:[
+   num(last?.[idx.phone])||0,
+   num(last?.[idx.room])||0,
+   num(last?.[idx.mobileMsg])||0,
+   num(last?.[idx.mobile])||0
+  ]
+ }]);
+}
+
+function renderUssd(){
+ const s=data["УССД"], rows=getFilteredRows(s,"ussd");
+ const idx={
+  orphans:columnIndex(s,["діти-сироти"],1),
+  family:columnIndex(s,["сімейних формах"],2),
+  inst:columnIndex(s,["закладах"],3),
+  dbst:columnIndex(s,["дбст"],4),
+  foster:columnIndex(s,["прийомні"],5),
+  adopt:columnIndex(s,["усиновлено"],6),
+  lost:columnIndex(s,["залишилися"],7)
+ };
+ const period=periodLabel(rows,"ussd");
+ document.getElementById("page-ussd").innerHTML=`
+ <div class="section-title"><div><h1>УССД — служба у справах дітей</h1><span>Показники дітей-сиріт та дітей, позбавлених батьківського піклування</span></div></div>
+ ${yearFilterHTML("ussd",s)}
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">На обліку</div><div class="kpi-value">${fmt(metricFor(rows,idx.orphans,"ussd"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Сімейні форми</div><div class="kpi-value">${fmt(metricFor(rows,idx.family,"ussd"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">У закладах</div><div class="kpi-value">${fmt(metricFor(rows,idx.inst,"ussd"))}</div><div class="kpi-note">${period}</div></div>
+  <div class="kpi"><div class="kpi-label">Усиновлено за рік</div><div class="kpi-value">${fmt(metricFor(rows,idx.adopt,"ussd"))}</div><div class="kpi-note">${period}</div></div>
+ </div>
+ <div class="chart-grid">
+  <div class="card"><h2>Діти на обліку та сімейні форми</h2><p class="desc">Динаміка за всі роки</p><div class="chart-wrap"><canvas id="ussdChart"></canvas></div></div>
+  <div class="card"><h2>Форми виховання та усиновлення</h2><p class="desc">${period}</p><div class="chart-wrap"><canvas id="ussdBar"></canvas></div></div>
+  <div class="card"><h2>Заклади, ДБСТ та прийомні сім'ї</h2><p class="desc">Динаміка показників</p><div class="chart-wrap"><canvas id="ussdForms"></canvas></div></div>
+  <div class="card"><h2>Усиновлення та діти без піклування</h2><p class="desc">Динаміка показників</p><div class="chart-wrap"><canvas id="ussdAdopt"></canvas></div></div>
+ </div>
+ <div class="card"><h2>Вихідні дані</h2><p class="desc">Дані листа «УССД»</p>${tableHTML(s,10000,"ussd")}</div>`;
+ lineChart("ussdChart",rows.map(r=>yearLabel(r[0])),[
+  {label:"Діти-сироти / позбавлені піклування",data:rows.map(r=>num(r[idx.orphans]))},
+  {label:"У сімейних формах виховання",data:rows.map(r=>num(r[idx.family]))}
+ ]);
+ const last=rows.length ? rows[rows.length-1] : null;
+ barChart("ussdBar",["ДБСТ","Прийомні сім'ї","У закладах","Усиновлено"],[{label:period,data:[num(last?.[idx.dbst])||0,num(last?.[idx.foster])||0,num(last?.[idx.inst])||0,num(last?.[idx.adopt])||0]}]);
+ lineChart("ussdForms",rows.map(r=>yearLabel(r[0])),[
+  {label:"У закладах",data:rows.map(r=>num(r[idx.inst]))},
+  {label:"ДБСТ",data:rows.map(r=>num(r[idx.dbst]))},
+  {label:"Прийомні сім'ї",data:rows.map(r=>num(r[idx.foster]))}
+ ]);
+ lineChart("ussdAdopt",rows.map(r=>yearLabel(r[0])),[
+  {label:"Усиновлено за рік",data:rows.map(r=>num(r[idx.adopt]))},
+  {label:"Залишилися без батьківського піклування",data:rows.map(r=>num(r[idx.lost]))}
+ ]);
+}
+
+async function loadAll(){
+ document.getElementById("status").textContent="Завантаження даних…";
+ document.querySelectorAll(".error").forEach(x=>x.remove());
+ try{
+  const results=await Promise.all(SHEETS.map(fetchSheet));
+  SHEETS.forEach((n,i)=>data[n]=results[i]);
+  renderTercenter();renderVpo();renderMcss();renderUssd();
+  const counts=SHEETS.map(n=>latestRows(data[n]).length).join(" / ");
+  const now=new Date().toLocaleString("uk-UA");
+  document.getElementById("status").textContent="Оновлено: "+now; }catch(e){
+  console.error(e);
+  document.getElementById("status").textContent="Дані не оновлено";
+ }
+}
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+ document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));btn.classList.add("active");
+ document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+ document.getElementById("page-"+btn.dataset.page).classList.remove("hidden");
+ window.scrollTo({top:0,behavior:"smooth"});
+}));
+
+// При старті одразу відкриваємо Терцентр.
+const firstTab=document.querySelector('.tab[data-page="tercenter"]');
+if(firstTab){
+  firstTab.classList.add("active");
+  document.getElementById("page-tercenter").classList.remove("hidden");
+}
+
+loadAll();
+setInterval(loadAll,CONFIG.REFRESH_MINUTES*60*1000);
+</script>
 </body>
 </html>
