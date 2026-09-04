@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дашборд соціальної політики — Дніпро</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --blue:#003087; --sky:#62B5E5; --navy:#002855;
+  --bg:#f4f7fb; --card:#fff; --text:#18324b; --muted:#6b7d90;
+  --line:#e4ebf3; --soft:#edf6fc; --shadow:0 10px 30px rgba(0,40,85,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;position:sticky;top:0;z-index:20;box-shadow:0 5px 20px rgba(0,40,85,.18)}
+.header-inner{max-width:1400px;margin:auto;padding:18px 24px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none}
+.logo span{width:25px;height:27px;border:4px solid var(--blue);border-top:0;border-radius:0 0 13px 13px;position:relative}
+.logo span:before,.logo span:after{content:"";position:absolute;left:-3px;width:25px;height:7px;border-top:4px solid var(--blue);border-radius:50%}
+.logo span:before{top:-7px}.logo span:after{top:0}
+.title{font-size:22px;font-weight:800;letter-spacing:.1px}.subtitle{font-size:13px;opacity:.8;margin-top:3px}
+.container{max-width:1400px;margin:auto;padding:24px}
+.toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:#fff;color:var(--blue);padding:10px 15px;border-radius:11px;font-weight:700;cursor:pointer;transition:.2s}
+.tab:hover{border-color:var(--sky);transform:translateY(-1px)}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.actions{display:flex;align-items:center;gap:10px}
+button.refresh{border:0;background:var(--sky);color:var(--navy);font-weight:800;padding:10px 15px;border-radius:10px;cursor:pointer}
+.status{font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);padding:9px 12px;border-radius:10px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi:after{content:"";position:absolute;right:-22px;top:-22px;width:75px;height:75px;border-radius:50%;background:var(--soft)}
+.kpi-label{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:800}
+.kpi-value{font-size:29px;font-weight:900;color:var(--navy);margin-top:8px}
+.kpi-note{font-size:12px;color:var(--muted);margin-top:4px}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{margin:0 0 4px;font-size:17px;color:var(--navy)}
+.card p.desc{margin:0 0 15px;font-size:12px;color:var(--muted)}
+.chart-wrap{height:320px;position:relative}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:760px;background:#fff}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:12px;position:sticky;top:0;z-index:2}
+td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;white-space:nowrap}
+tr:nth-child(even) td{background:#f8fbfd}
+tr:hover td{background:#eef7fc}
+.badge{display:inline-block;padding:5px 8px;border-radius:999px;background:#e9f5fc;color:var(--blue);font-size:11px;font-weight:800}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:20px 0 12px}
+.section-title h1{font-size:23px;margin:0;color:var(--navy)} .section-title span{font-size:12px;color:var(--muted)}
+.note{padding:12px 14px;background:#eef7fc;border-left:4px solid var(--sky);border-radius:8px;font-size:12px;color:#46647d;margin-bottom:16px}
+.footer{margin-top:30px;background:var(--navy);color:#fff;padding:18px 24px}
+.footer-inner{max-width:1400px;margin:auto;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;font-size:12px;opacity:.9}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+.error{background:#fff1f1;border:1px solid #f1caca;color:#8b2020;padding:14px;border-radius:10px}
+.search{padding:10px 12px;border:1px solid var(--line);border-radius:10px;outline:none;min-width:220px}
+.search:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(98,181,229,.15)}
+.hidden{display:none!important}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+@media(max-width:620px){.container{padding:14px}.header-inner{padding:14px}.title{font-size:17px}.logo{width:40px;height:40px}.kpis{grid-template-columns:1fr 1fr;gap:9px}.kpi{padding:13px}.kpi-value{font-size:22px}.tab{padding:8px 10px;font-size:12px}.search{width:100%;min-width:0}.actions{width:100%}.status{flex:1}.refresh{flex:none}.chart-wrap{height:250px}}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo"><span></span></div>
+      <div><div class="title">Дашборд соціальної політики м. Дніпро</div><div class="subtitle">Моніторинг соціальних послуг, ВПО та захисту дітей</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="toolbar">
+    <div class="tabs">
+      <button class="tab active" data-page="overview">Огляд</button>
+      <button class="tab" data-page="tercenter">Терцентр</button>
+      <button class="tab" data-page="vpo">ВПО</button>
+      <button class="tab" data-page="mcss">МЦСС</button>
+      <button class="tab" data-page="ussd">УССД</button>
+    </div>
+    <div class="actions">
+      <span class="status" id="status">Завантаження даних…</span>
+      <button class="refresh" onclick="loadAll()">↻ Оновити</button>
+    </div>
+  </div>
+
+  <section id="page-overview">
+    <div class="section-title"><div><h1>Ключові показники</h1><span>Останні доступні значення з 4 листів Google Таблиці</span></div></div>
+    <div id="overviewKpis" class="kpis"></div>
+    <div class="grid">
+      <div class="card"><h2>Охоплення соціальними послугами</h2><p class="desc">Територіальний центр та Дніпровський міський центр соціальних служб</p><div class="chart-wrap"><canvas id="overviewChart"></canvas></div></div>
+      <div class="card"><h2>ВПО у м. Дніпро</h2><p class="desc">Загальна кількість облікованих внутрішньо переміщених осіб</p><div class="chart-wrap"><canvas id="vpoChartSmall"></canvas></div></div>
+    </div>
+    <div class="grid">
+      <div class="card"><h2>Стан системи за напрямами</h2><p class="desc">Останній доступний період кожного інформаційного листа</p><div id="directionCards" class="kpis"></div></div>
+      <div class="card"><h2>Дані</h2><div class="note">Дашборд читає дані безпосередньо з Google Sheets. Якщо в таблиці додаються нові рядки, вони підтягуються після оновлення сторінки або автоматично за заданим інтервалом.</div><div id="sourceInfo"></div></div>
+    </div>
+  </section>
+
+  <section id="page-tercenter" class="hidden"></section>
+  <section id="page-vpo" class="hidden"></section>
+  <section id="page-mcss" class="hidden"></section>
+  <section id="page-ussd" class="hidden"></section>
+</main>
+
+<footer class="footer"><div class="footer-inner"><span>Дашборд соціальної політики м. Дніпро</span><span>Розроблено КП «ІНФО-РАДА-ДНІПРО»</span></div></footer>
+
+<script>
+const CONFIG={
+  SHEET_ID:"134u7j5LmOTDUsBFhXEaV1ot7IpL1F2-MjBNGucQhh74",
+  REFRESH_MINUTES:5
+};
+const SHEETS=["Терцентр","ВПО","МЦСС","УССД"];
+let data={}, charts={};
+
+function num(v){
+  if(v===null||v===undefined||v==="—"||v==="") return null;
+  if(typeof v==="number") return v;
+  let s=String(v).replace(/\u00a0/g," ").trim().replace(/\s/g,"").replace(",",".");
+  let n=Number(s.replace(/[^\d.-]/g,""));
+  return Number.isFinite(n)?n:null;
+}
+function fmt(v){
+  if(v===null||v===undefined||v==="—"||v==="") return "—";
+  let n=num(v);
+  return n!==null ? n.toLocaleString("uk-UA") : String(v);
+}
+function yearLabel(v){
+  if(v===null||v===undefined) return "";
+  if(typeof v==="string") return v;
+  return String(v);
+}
+function cellValue(c){
+  if(!c) return null;
+  if(c.v!==undefined && c.v!==null) return c.v;
+  return null;
+}
+async function fetchSheet(name){
+  const url="https://docs.google.com/spreadsheets/d/"+CONFIG.SHEET_ID+"/gviz/tq?tqx=out:json&sheet="+encodeURIComponent(name);
+  const r=await fetch(url,{cache:"no-store"});
+  if(!r.ok) throw new Error(name+" HTTP "+r.status);
+  const text=await r.text();
+  const json=JSON.parse(text.substring(text.indexOf("{"),text.lastIndexOf("}")+1));
+  const cols=json.table.cols.map(c=>c.label||"");
+  const rows=json.table.rows.map(row=>row.c.map(cellValue));
+  return {cols,rows};
+}
+function latestRows(sheet){
+  return sheet.rows.filter(r=>r.some(v=>v!==null && v!=="")).filter(r=>r[0]!==null);
+}
+function headerIndex(sheet, phrase){
+  const p=phrase.toLowerCase();
+  return sheet.cols.findIndex(x=>x.toLowerCase().includes(p));
+}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+function lineChart(id,labels,datasets){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:"line",
+    data:{labels,datasets:datasets.map((d,i)=>({label:d.label,data:d.data,borderColor:i%2?"#62B5E5":"#003087",backgroundColor:i%2?"rgba(98,181,229,.12)":"rgba(0,48,135,.08)",tension:.3,fill:true,pointRadius:3,spanGaps:true}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{usePointStyle:true}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>Number(v).toLocaleString("uk-UA")}},x:{grid:{display:false}}}}
+  });
+}
+function barChart(id,labels,datasets){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:"bar",data:{labels,datasets:datasets.map((d,i)=>({label:d.label,data:d.data,backgroundColor:i%2?"#62B5E5":"#003087",borderRadius:7}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:true,ticks:{callback:v=>Number(v).toLocaleString("uk-UA")}},x:{grid:{display:false}}}}
+  });
+}
+function doughnut(id,labels,data){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{type:"doughnut",data:{labels,datasets:[{data,backgroundColor:["#003087","#62B5E5","#002855","#8bc7e8","#5d78a8"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}}});
+}
+function tableHTML(sheet, limit=100){
+  const rows=latestRows(sheet);
+  const headers=sheet.cols.filter((h,i)=>h || rows.some(r=>r[i]!==null));
+  const idxs=sheet.cols.map((h,i)=>i).filter(i=>sheet.cols[i] || rows.some(r=>r[i]!==null));
+  return `<div class="table-wrap"><table><thead><tr>${idxs.map(i=>`<th>${sheet.cols[i]||"Показник"}</th>`).join("")}</tr></thead><tbody>${rows.slice(-limit).map(r=>`<tr>${idxs.map(i=>`<td>${fmt(r[i])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+
+function renderOverview(){
+  const t=data["Терцентр"], v=data["ВПО"], m=data["МЦСС"], u=data["УССД"];
+  const tr=latestRows(t).at(-1), vr=latestRows(v).at(-1), mr=latestRows(m).at(-1), ur=latestRows(u).at(-1);
+  const ti=headerIndex(t,"обслуговано осіб"), vi=headerIndex(v,"обліковано впо"), mi=headerIndex(m,"охоплено соціальними послугами, сімей"), ui=headerIndex(u,"діти-сироти");
+  document.getElementById("overviewKpis").innerHTML=[
+    ["Терцентр",fmt(tr?.[ti]),"обслуговано осіб • "+yearLabel(tr?.[0])],
+    ["ВПО",fmt(vr?.[vi]),"обліковано у м. Дніпро • "+yearLabel(vr?.[0])],
+    ["МЦСС",fmt(mr?.[mi]),"охоплено сімей • "+yearLabel(mr?.[0])],
+    ["УССД",fmt(ur?.[ui]),"діти-сироти та позбавлені піклування • "+yearLabel(ur?.[0])]
+  ].map(x=>`<div class="kpi"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-note">${x[2]}</div></div>`).join("");
+  const trRows=latestRows(t), mRows=latestRows(m);
+  lineChart("overviewChart",trRows.map(r=>yearLabel(r[0])),[
+    {label:"Терцентр — обслуговано осіб",data:trRows.map(r=>num(r[ti]))},
+    {label:"МЦСС — сімей",data:mRows.map(r=>num(r[mi]))}
+  ]);
+  const vRows=latestRows(v);
+  lineChart("vpoChartSmall",vRows.map(r=>yearLabel(r[0]).slice(0,10)),[{label:"Обліковано ВПО",data:vRows.map(r=>num(r[vi]))}]);
+  document.getElementById("directionCards").innerHTML=[
+    ["Терцентр",yearLabel(tr?.[0])],["ВПО",yearLabel(vr?.[0])],["МЦСС",yearLabel(mr?.[0])],["УССД",yearLabel(ur?.[0])]
+  ].map(x=>`<div class="kpi" style="box-shadow:none"><div class="kpi-label">${x[0]}</div><div class="kpi-value" style="font-size:20px">${x[1]}</div><div class="kpi-note">останній запис</div></div>`).join("");
+  document.getElementById("sourceInfo").innerHTML=`<span class="badge">4 листи підключено</span><p style="font-size:12px;color:var(--muted);line-height:1.6">Терцентр · ВПО · МЦСС · УССД<br>Автооновлення: кожні ${CONFIG.REFRESH_MINUTES} хв.</p>`;
+}
+
+function renderTercenter(){
+ const s=data["Терцентр"], rows=latestRows(s), idx1=headerIndex(s,"обслуговано осіб"), idx2=headerIndex(s,"догляд вдома"), idx3=headerIndex(s,"денного перебування");
+ const latest=rows.at(-1);
+ document.getElementById("page-tercenter").innerHTML=`
+ <div class="section-title"><div><h1>Територіальний центр</h1><span>Кількість отримувачів соціальних послуг</span></div></div>
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">Обслуговано осіб</div><div class="kpi-value">${fmt(latest?.[idx1])}</div><div class="kpi-note">${yearLabel(latest?.[0])}</div></div>
+  <div class="kpi"><div class="kpi-label">Догляд вдома</div><div class="kpi-value">${fmt(latest?.[idx2])}</div><div class="kpi-note">${yearLabel(latest?.[0])}</div></div>
+  <div class="kpi"><div class="kpi-label">Денне перебування</div><div class="kpi-value">${fmt(latest?.[idx3])}</div><div class="kpi-note">${yearLabel(latest?.[0])}</div></div>
+  <div class="kpi"><div class="kpi-label">Період</div><div class="kpi-value" style="font-size:20px">${yearLabel(latest?.[0])}</div><div class="kpi-note">останній доступний запис</div></div>
+ </div>
+ <div class="card"><h2>Динаміка отримувачів</h2><p class="desc">Порівняння основних показників за роками</p><div class="chart-wrap"><canvas id="terChart"></canvas></div></div>
+ <div class="card" style="margin-top:16px"><h2>Вихідні дані</h2><p class="desc">Дані листа «Терцентр»</p>${tableHTML(s)}</div>`;
+ lineChart("terChart",rows.map(r=>yearLabel(r[0])),[
+  {label:"Обслуговано осіб",data:rows.map(r=>num(r[idx1]))},
+  {label:"Догляд вдома",data:rows.map(r=>num(r[idx2]))},
+  {label:"Денне перебування",data:rows.map(r=>num(r[idx3]))}
+ ]);
+}
+function renderVpo(){
+ const s=data["ВПО"], rows=latestRows(s), total=headerIndex(s,"обліковано впо"), men=headerIndex(s,"чолов"), women=headerIndex(s,"жін"), children=headerIndex(s,"дітей"), latest=rows.at(-1);
+ document.getElementById("page-vpo").innerHTML=`
+ <div class="section-title"><div><h1>Внутрішньо переміщені особи</h1><span>Обліковано ВПО у м. Дніпро</span></div></div>
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">Всього ВПО</div><div class="kpi-value">${fmt(latest?.[total])}</div><div class="kpi-note">${yearLabel(latest?.[0])}</div></div>
+  <div class="kpi"><div class="kpi-label">Чоловіків</div><div class="kpi-value">${fmt(latest?.[men])}</div></div>
+  <div class="kpi"><div class="kpi-label">Жінок</div><div class="kpi-value">${fmt(latest?.[women])}</div></div>
+  <div class="kpi"><div class="kpi-label">Дітей</div><div class="kpi-value">${fmt(latest?.[children])}</div></div>
+ </div>
+ <div class="grid">
+  <div class="card"><h2>Динаміка обліку ВПО</h2><p class="desc">Значення з листа «ВПО»</p><div class="chart-wrap"><canvas id="vpoChart"></canvas></div></div>
+  <div class="card"><h2>Структура ВПО</h2><p class="desc">${yearLabel(latest?.[0])}</p><div class="chart-wrap"><canvas id="vpoGender"></canvas></div></div>
+ </div>
+ <div class="card"><h2>Вихідні дані</h2><p class="desc">Дані листа «ВПО»</p>${tableHTML(s)}</div>`;
+ lineChart("vpoChart",rows.map(r=>yearLabel(r[0]).slice(0,10)),[{label:"Обліковано ВПО",data:rows.map(r=>num(r[total]))}]);
+ doughnut("vpoGender",["Чоловіки","Жінки","Діти"],[num(latest?.[men])||0,num(latest?.[women])||0,num(latest?.[children])||0)]);
+}
+function renderMcss(){
+ const s=data["МЦСС"], rows=latestRows(s), latest=rows.at(-1);
+ const idx={families:headerIndex(s,"сімей"),persons:headerIndex(s,"осіб"),kids:headerIndex(s,"дітей"),support:headerIndex(s,"соціальним супроводом"),phone:headerIndex(s,"телефон довіри"),room:headerIndex(s,"кризовій кімнаті"),mobile:headerIndex(s,"мобільної бригади")};
+ document.getElementById("page-mcss").innerHTML=`
+ <div class="section-title"><div><h1>Дніпровський міський центр соціальних служб</h1><span>Охоплено соціальними послугами</span></div></div>
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">Сімей</div><div class="kpi-value">${fmt(latest?.[idx.families])}</div><div class="kpi-note">${yearLabel(latest?.[0])}</div></div>
+  <div class="kpi"><div class="kpi-label">Осіб</div><div class="kpi-value">${fmt(latest?.[idx.persons])}</div></div>
+  <div class="kpi"><div class="kpi-label">Дітей</div><div class="kpi-value">${fmt(latest?.[idx.kids])}</div></div>
+  <div class="kpi"><div class="kpi-label">Соціальний супровід</div><div class="kpi-value">${fmt(latest?.[idx.support])}</div></div>
+ </div>
+ <div class="grid">
+  <div class="card"><h2>Динаміка охоплення</h2><p class="desc">Сім'ї та діти</p><div class="chart-wrap"><canvas id="mcssChart"></canvas></div></div>
+  <div class="card"><h2>Додаткові послуги</h2><p class="desc">Телефон довіри, кризова кімната та мобільна бригада</p><div class="chart-wrap"><canvas id="mcssBar"></canvas></div></div>
+ </div>
+ <div class="card"><h2>Вихідні дані</h2><p class="desc">У таблиці відображаються всі фактичні колонки листа «МЦСС»</p>${tableHTML(s)}</div>`;
+ lineChart("mcssChart",rows.map(r=>yearLabel(r[0])),[
+  {label:"Охоплено сімей",data:rows.map(r=>num(r[idx.families]))},
+  {label:"Охоплено дітей",data:rows.map(r=>num(r[idx.kids]))}
+ ]);
+ const last=rows.at(-1);
+ barChart("mcssBar",["Телефон довіри","Кризова кімната","Мобільна бригада"],[{
+  label:yearLabel(last?.[0]),
+  data:[num(last?.[idx.phone])||0,num(last?.[idx.room])||0,num(last?.[idx.mobile])||0)
+ }]);
+}
+function renderUssd(){
+ const s=data["УССД"], rows=latestRows(s), latest=rows.at(-1);
+ const idx={orphans:headerIndex(s,"діти-сироти"),family:headerIndex(s,"сімейних формах"),inst:headerIndex(s,"закладах"),dbst:headerIndex(s,"дбст"),foster:headerIndex(s,"прийомні"),adopt:headerIndex(s,"усиновлено"),lost:headerIndex(s,"залишилися")};
+ document.getElementById("page-ussd").innerHTML=`
+ <div class="section-title"><div><h1>УССД — служба у справах дітей</h1><span>Показники дітей-сиріт та дітей, позбавлених батьківського піклування</span></div></div>
+ <div class="kpis">
+  <div class="kpi"><div class="kpi-label">На обліку</div><div class="kpi-value">${fmt(latest?.[idx.orphans])}</div><div class="kpi-note">${yearLabel(latest?.[0])}</div></div>
+  <div class="kpi"><div class="kpi-label">Сімейні форми</div><div class="kpi-value">${fmt(latest?.[idx.family])}</div></div>
+  <div class="kpi"><div class="kpi-label">У закладах</div><div class="kpi-value">${fmt(latest?.[idx.inst])}</div></div>
+  <div class="kpi"><div class="kpi-label">Усиновлено за рік</div><div class="kpi-value">${fmt(latest?.[idx.adopt])}</div></div>
+ </div>
+ <div class="grid">
+  <div class="card"><h2>Динаміка дітей на обліку</h2><p class="desc">Загальна кількість та сімейні форми виховання</p><div class="chart-wrap"><canvas id="ussdChart"></canvas></div></div>
+  <div class="card"><h2>Форми виховання та усиновлення</h2><p class="desc">${yearLabel(latest?.[0])}</p><div class="chart-wrap"><canvas id="ussdBar"></canvas></div></div>
+ </div>
+ <div class="card"><h2>Вихідні дані</h2><p class="desc">Дані листа «УССД»</p>${tableHTML(s)}</div>`;
+ lineChart("ussdChart",rows.map(r=>yearLabel(r[0])),[
+  {label:"Діти-сироти / позбавлені піклування",data:rows.map(r=>num(r[idx.orphans]))},
+  {label:"У сімейних формах виховання",data:rows.map(r=>num(r[idx.family]))}
+ ]);
+ const last=rows.at(-1);
+ barChart("ussdBar",["ДБСТ","Прийомні сім'ї","У закладах","Усиновлено"],[{label:yearLabel(last?.[0]),data:[num(last?.[idx.dbst])||0,num(last?.[idx.foster])||0,num(last?.[idx.inst])||0,num(last?.[idx.adopt])||0]}]);
+}
+async function loadAll(){
+ document.getElementById("status").textContent="Оновлення…";
+ try{
+  const results=await Promise.all(SHEETS.map(fetchSheet));
+  SHEETS.forEach((n,i)=>data[n]=results[i]);
+  renderOverview();renderTercenter();renderVpo();renderMcss();renderUssd();
+  const now=new Date().toLocaleString("uk-UA");
+  document.getElementById("status").textContent="Оновлено: "+now;
+ }catch(e){
+  console.error(e);
+  document.getElementById("status").textContent="Помилка завантаження";
+  document.querySelectorAll("section:not(.hidden)").forEach(x=>x.insertAdjacentHTML("afterbegin",`<div class="error">Не вдалося отримати дані Google Таблиці. Перевірте, що таблиця доступна за посиланням «усім, хто має посилання», і спробуйте оновити сторінку.<br><small>${e.message}</small></div>`));
+ }
+}
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+ document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));btn.classList.add("active");
+ document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+ document.getElementById("page-"+btn.dataset.page).classList.remove("hidden");
+ window.scrollTo({top:0,behavior:"smooth"});
+}));
+loadAll();
+setInterval(loadAll,CONFIG.REFRESH_MINUTES*60*1000);
+</script>
+</body>
+</html>
